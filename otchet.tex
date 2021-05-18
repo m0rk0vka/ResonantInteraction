@@ -1,0 +1,329 @@
+\documentclass[a4paper,12pt,titlepage,finall]{article}
+
+\usepackage[T1,T2A]{fontenc}     % форматы шрифтов
+\usepackage[utf8x]{inputenc}     % кодировка символов, используемая в данном файле
+\usepackage[russian]{babel}      % пакет русификации
+\usepackage{tikz}                % для создания иллюстраций
+\usepackage{pgfplots}            % для вывода графиков функций
+\usepackage{geometry}		 % для настройки размера полей
+\usepackage{indentfirst}         % для отступа в первом абзаце секции
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\graphicspath{ {./images/} }
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+% выбираем размер листа А4, все поля ставим по 3см
+\geometry{a4paper,left=30mm,top=30mm,bottom=30mm,right=30mm}
+
+\setcounter{secnumdepth}{0}      % отключаем нумерацию секций
+
+\usepgfplotslibrary{fillbetween} % для изображения областей на графиках
+
+\begin{document}
+% Титульный лист
+\begin{titlepage}
+    \begin{center}
+	{\small \sc Московский государственный университет \\имени М.~В.~Ломоносова\\
+	Факультет вычислительной математики и кибернетики\\}
+	\vfill
+	{\Large \sc Отчет по заданию №1}\\
+	~\\
+	{\large \bf <<Численное решение резонансной задачи 3-х волн в среде с квадратичной нелинейностью.\\
+	    Метод Рунге — Кутты>>}\\ 
+	~\\
+    \end{center}
+    \begin{flushright}
+	\vfill {Выполнил:\\
+	студент 305 группы\\
+	Татосьян~В.~Г.\\
+	~\\
+	Преподаватель:\\
+	Есикова~Н.~Б.}
+    \end{flushright}
+    \begin{center}
+	\vfill
+	{\small Москва\ 2021}
+    \end{center}
+\end{titlepage}
+
+% Автоматически генерируем оглавление на отдельной странице
+\tableofcontents
+\newpage
+
+\section{Постановка задачи}
+
+\begin{itemize}
+\item Задача заключается в нахождении решения системы обыкновенных дифференциальных уравнений первого порядка методом Рунге — Кутты.
+
+\begin{equation*}
+\begin{cases}
+$$\dot{y_1}$ = y_1 - 2 * y_2 ^ 2 - D * y_2 + y_3$
+\\
+$$\dot{y_2}$ = D * y_1 + 2 * y_1 * y_2 + y_2$
+\\
+$$\dot{y_3}$ = -2 * y_3 * (y_1 + M)$
+\end{cases}
+\end{equation*}
+
+\item Параметры системы: D, M - вещественные и \geqslant 0, $y_i(0)= y^* + \epsilon$, где $0 < \epsilon < 1$,  $0 \leqslant t \leqslant 100$,  $i = \overline{1..3}$
+
+\item Нахождение стационарных точек. \newline
+$\dot{y_i} = 0$, $i = \overline{1..3}$ \newline
+Получим: 
+\begin{equation*}
+\begin{cases}
+$0 = y_1 - 2 * y_2 ^ 2 - D * y_2 + y_3$
+\\
+$0 = D * y_1 + 2 * y_1 * y_2 + y_2$
+\\
+$0 = -2 * y_3 * (y_1 + M)$
+\end{cases}
+\end{equation*} \newline
+Из системы получаем тривиальное решение: \newline
+$y_1 = y_2 = y_3 = 0$ \newline
+Находим координаты нетривиальной стационарной точки: \newline
+$y_1 = -M$, $y_2 = \frac{D * M}{1 - 2 * M}$, $y_3 = \frac {D ^ 2 * M + 4 * M ^ 3 - 4 * M ^ 2 + M}{(2 * M - 1)^2}$  \newline
+\item Реализация численного метода для решения данной задачи. 
+\item Изучение динамики системы с начальными условиями: $y_i(0)= y^* + \epsilon$, где $0 < \epsilon < 1$, при вариации D и M > \frac{1}{2} i = \overline{1..3}$
+
+\newpage
+\section{Реализация численного метода для решения данной задачи}
+Будем использовать метод Рунге-Кутты 4-го порядка точности: \newline
+$y_i_k = y_{i-1}_k + \frac{h}{6}(k_1 + 2k_2 + 2k_3 + k_4)$, где $k_1, k_2, k_3, k_4$ \newline 
+вычисляются следующим образом: \newline
+$k_1 = f_i(t, y_1, y_2, y_3)$,   $i = \overline{1..3}$ \newline
+$k_2 = f_i(t +\frac{h}{2}, y_1 + k_1 \frac{h}{2}, y_2 + k_1 \frac{h}{2}, y_3 + k_1 \frac{h}{2})$ \newline
+$k_3 =f_i(t +\frac{h}{2}, y_1 + k_2\frac{h}{2}, y_2 + k_2 \frac{h}{2}, y_3 + k_2 \frac{h}{2})$ \newline
+$k_4 =f_i(t +h, y_1 + k_3 h, y_2 + k_3 h, y_3 + k_3 h)$ \newline
+Последовательно вычисляются приближающие угловые коэффициенты: $k_1$ – в исходной точке, $k_2$ – на половинном шаге, $k_3$ – тоже на половинном шаге, но по уточнённому значению углового коэффициента $k_2$ вместо $k_1$, $k_4$ – на целом шаге по предыдущему значению $k_3$. Для получения нового значения искомой функции на полном шаге используется взвешенное среднее этих угловых коэффициентов.
+\newpage
+\section{Численное решение задачи}
+Используя вышеописанный метод решим исходню систему для заданных параметров:
+$E_1 = 0.6, E_2 = 0.58, E_3 = 0.12, \mu = 0.2, h = 0.01$ и начальных условиях: \\
+$y_1(0) = 0 + \epsilon, y_2(0) = 0 + \epsilon, y_3(0)= 0 + \epsilon, \epsilon = 0.25$
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.4]{images/Y1(T).png}
+    \caption{$График y_1(t)$}
+    \label{fig:my_label}
+\end{figure} 
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.4]{images/y2(t)_E1_0.6_E2_0.58_E3_0.12_MU_0.2_H_0.01.png}
+    \caption{$График y_2(t)$}
+    \label{fig:my_label}
+\end{figure}
+\newpage
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.4]{images/y3(t)_E1_0.6_E2_0.58_E3_0.12_MU_0.2_H_0.01.png}
+    \caption{$График y_3(t)$}
+    \label{fig:my_label}
+\end{figure}
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.4]{images/y1(y2)_E1_0.6_E2_0.58_E3_0.12_MU_0.2_H_0.01.png}
+    \caption{$График y_1(y_2)$}
+    \label{fig:my_label}
+\end{figure}
+\newpage
+Найдено переодическое решение с периодом $\lambda \approx 11$ и параметрах:
+$E_1 = 0.1, E2 = 1.2, E_3 = 0.06, \mu = 0.6, h = 0.01$ и начальных условиях: \newline
+$y_1(0) = 0.1 + \epsilon, y_2(0) = 0.2 + \epsilon, y_3(0)= 1 + \epsilon, \epsilon = 0.25$
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.4]{images/y1(t)_E1_0.1_E2_1.2_E3_0.06_MU_0.6_H_0.01.png}
+    \caption{$График y_1(t)$}
+    \label{fig:my_label}
+\end{figure}
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.4]{images/y2(t)_E1_0.6_E2_0.75_E3_0.006_MU_0.01_H_0.01.png}
+    \caption{$График y_2(t)$}
+    \label{fig:my_label}
+\end{figure}
+\newpage
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.4]{images/y3(t)_E1_0.6_E2_0.75_E3_0.006_MU_0.01_H_0.01.png}
+    \caption{$График y_3(t)$}
+    \label{fig:my_label}
+\end{figure}
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.4]{images/y1(y2)_E1_0.6_E2_0.75_E3_0.006_MU_0.01_H_0.01.png}
+    \caption{$График y_1(y_2)$}
+    \label{fig:my_label}
+\end{figure}
+\newpage
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.4]{images/y1(y3)_E1_0.6_E2_0.75_E3_0.006_MU_0.01_H_0.01.png}
+    \caption{$График y_1(y_3)$}
+    \label{fig:my_label}
+\end{figure}
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.4]{images/y2(y3)_E1_0.6_E2_0.75_E3_0.006_MU_0.01_H_0.01.png}
+    \caption{$График y_2(y_3)$}
+    \label{fig:my_label}
+\end{figure}
+\newpage
+\newpage
+\section{Исходный код}
+\begin{lstlisting}[language=python, caption={Исходный код программы}]
+def f1(y1, y2, y3, D):
+    return y1 - 2 * y2 ** 2 - D * y2 + y3
+
+def f2(y1, y2, D):
+    return D * y1 + 2 * y1 * y2 + y2
+
+def f3(y1, y3, M):
+    return -2 * y3 * (y1 + M)
+
+def k11(f, x, y, z, D):
+    return f(x, y, z, D)
+
+def k21(f,  x,  y,  z,  k, D):
+    return f(x + h / 2, y + h * k / 2, z + k * h / 2, D)
+
+def k31(f, x, y, z, k, D):
+    return f(x + h / 2, y + k * h / 2, z + k * h / 2, D)
+
+def k41(f, x, y, z, k, D):
+    return f(x + h, y + h * k, z + h * k, D)
+
+def k12(f, x, y, D):
+    return f(x, y, D)
+
+def k22(f, x, y, k, D):
+    return f(x + h / 2, y + k * h / 2, D)
+
+def k32(f, x, y, k, D):
+    return f(x + h / 2, y + k * h / 2, D)
+
+def k42(f, x, y, k, D):
+    return f(x + h, y + h * k, D)
+
+def k13(f, x, y, M):
+    return f(x, y, M)
+
+def k23(f, x, y, k, M):
+    return f(x + h / 2, y + k * h / 2, M)
+
+def k33(f, x, y, k, M):
+    return f(x + h / 2, y + k * h / 2, M)
+
+def k43(f, x, y, k, M):
+    return f(x + h, y + h * k, M)
+
+def NextValue(y,  y_list):
+    return y + h * (y_list[0] + 2 * y_list[1] + 2 * y_list[2] + y_list[3]) / 6
+
+if __name__ == '__main__':
+    
+    global h
+    epsilon = 0.25
+    h = 0.001
+
+    print('Hello! Please, enter D equal 0 or 2:')
+    D = int(input())
+    if D == 0:
+        print('Please, enter list of M values, where 1/2 < M < 14:')
+        M = float(input())
+    elif D == 2:
+        print('Please, enter list of M values, where 1/2 < M <= 3, 3 < M <= 8.5, 8.5 < M <= 14:')
+        M = float(input())
+    else:
+        print('Bad D value!')
+
+    y_1 = - M + epsilon
+    y_2 = D * M / (1 - 2 * M) + epsilon
+    y_3 = (D * D * M + 4 * M ** 3 - 4 * M ** 2 + M) / (2 * M - 1) ** 2 + epsilon
+    t = 0
+    t_list = []
+    y_1_list = []
+    y_2_list = []
+    y_3_list = []
+    while t <= 100:
+        k1 = k11(f1, y_1, y_2, y_3, D)
+        k2 = k21(f1, y_1, y_2, y_3, k1, D)
+        k3 = k31(f1, y_1, y_2, y_3, k2, D)
+        k4 = k41(f1, y_1, y_2, y_3, k3, D)
+
+        y_1_k_list = [k1, k2, k3, k4]
+
+        k1 = k12(f2, y_1, y_2, D)
+        k2 = k22(f2, y_1, y_2, k1, D)
+        k3 = k32(f2, y_1, y_2, k2, D)
+        k4 = k42(f2, y_1, y_2, k3, D)
+
+        y_2_k_list = [k1, k2, k3, k4]
+
+        k1 = k13(f3, y_1, y_3, M)
+        k2 = k23(f3, y_1, y_3, k1, M)
+        k3 = k33(f3, y_1, y_3, k2, M)
+        k4 = k43(f3, y_1, y_3, k3, M)
+
+        y_3_k_list = [k1, k2, k3, k4]
+
+        y_1 = NextValue(y_1, y_1_k_list)
+        y_2 = NextValue(y_2, y_2_k_list)
+        y_3 = NextValue(y_3, y_3_k_list)
+
+        t_list.append(t)
+        y_1_list.append(y_1)
+        y_2_list.append(y_2)
+        y_3_list.append(y_3)
+
+        t += h
+
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    #print(len(t_list), len(y_1_list))
+    fig1 = plt.figure()
+    plt.plot(t_list, y_1_list)
+    plt.plot(t_list, y_2_list)
+    plt.plot(t_list, y_3_list)
+    '''
+    fig2 = plt.figure()
+    plt.plot(y_2_list, y_1_list)
+    plt.plot(y_3_list, y_1_list)
+    plt.plot(y_3_list, y_2_list)
+    fig3 = plt.figure()
+    ax = fig3.gca(projection='3d')
+    ax.plot(y_1_list, y_2_list, y_3_list, label='chto eto')
+    ax.legend()
+    '''
+    plt.show()
+
+
+\end{lstlisting}
+\end{document}
